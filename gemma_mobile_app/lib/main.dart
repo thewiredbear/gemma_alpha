@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-
-// Package imports
 import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma/pigeon.g.dart';
 import 'package:flutter_gemma/core/model.dart';
-import 'package:permission_handler/permission_handler.dart'; // NEW: Import the permission handler
-
-// Dart/IO imports
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 
 void main() {
@@ -40,71 +36,80 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  // --- STATE VARIABLES ---
   final FlutterGemmaPlugin _gemma = FlutterGemmaPlugin.instance;
   InferenceModel? _inferenceModel;
   InferenceChat? _chat;
   final TextEditingController _promptController = TextEditingController();
   String _responseText = '';
   bool _isLoading = false;
-  final String _modelFileName = 'gemma-3n-E4B-it-int4.task';
+  
+  final Map<String, String> _models = {
+    'Gemma 3n 2B (from Download folder)': 'gemma-3n-E2B-it-int4.task',
+    'Gemma 3n 4B (from Download folder)': 'gemma-3n-E4B-it-int4.task',
+  };
+  late String _selectedModelName;
+  late String _selectedModelFileName;
 
   @override
   void initState() {
     super.initState();
-    _loadModel();
+    _selectedModelName = _models.keys.first;
+    _selectedModelFileName = _models.values.first;
+    _initializeModel();
   }
 
-  // --- CORE LOGIC ---
-
-  // NEW: A function dedicated to asking for storage permission.
   Future<bool> _requestStoragePermission() async {
-    // Check the status of the storage permission.
-    var status = await Permission.storage.status;
-    
-    // If permission is not granted, request it.
-    if (!status.isGranted) {
-      status = await Permission.storage.request();
+    if (await Permission.manageExternalStorage.isGranted) {
+      return true;
+    } else {
+      final status = await Permission.manageExternalStorage.request();
+      return status.isGranted;
     }
-    
-    // Return true if permission is granted, false otherwise.
-    return status.isGranted;
   }
 
-  Future<void> _loadModel() async {
+  Future<void> _initializeModel() async {
     setState(() {
       _isLoading = true;
       _responseText = 'Checking storage permissions...';
+      _chat = null;
+      _inferenceModel = null;
     });
 
     try {
-      // Step 1: Request permission BEFORE trying to access any files.
       final hasPermission = await _requestStoragePermission();
       if (!hasPermission) {
-        throw Exception("Storage permission denied. Please grant permission in app settings and restart.");
+        throw Exception(
+          "Storage permission denied. Please grant 'All files access' permission for this app in your device settings and restart the app."
+        );
       }
-
       setState(() {
-        _responseText = 'Permission granted. Loading $_modelFileName from device storage...';
+        _responseText = 'Permission granted. Looking for $_selectedModelFileName in Download folder...';
       });
 
-      // Step 2: Get the path to the model file on the device.
-      final modelPath = await _getModelPathOnDevice(_modelFileName);
+      final modelPath = '/storage/emulated/0/Download/$_selectedModelFileName';
+      final file = File(modelPath);
 
-      // Step 3: Set the model path in the Gemma plugin.
-      await _gemma.modelManager.setModelPath(modelPath);
+      if (!await file.exists()) {
+        throw Exception(
+          'Model file not found at "$modelPath".\n\nPlease ensure the file is in your emulator\'s Download folder. You can drag and drop the file onto the emulator screen to transfer it.'
+        );
+      }
+      
+      await _gemma.modelManager.setModelPath(file.path);
 
-      // Step 4: Create the inference model instance.
+      // --- THE CRITICAL CHANGE IS HERE ---
+      // Use the CPU backend for the emulator to avoid OpenCL errors.
       _inferenceModel = await _gemma.createModel(
         modelType: ModelType.gemmaIt,
-        preferredBackend: PreferredBackend.gpu,
+        preferredBackend: PreferredBackend.cpu, // CHANGED FROM .gpu to .cpu
+        supportImage: true, 
+        maxNumImages: 1,
       );
       
-      // Step 5: Create a chat session.
       _chat = await _inferenceModel?.createChat();
 
       setState(() {
-        _responseText = 'Model loaded successfully! Ready for prompts.';
+        _responseText = 'Model "$_selectedModelName" loaded successfully! Ready for prompts.';
       });
     } catch (e) {
       setState(() {
@@ -117,37 +122,29 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<String> _getModelPathOnDevice(String modelFileName) async {
-    final path = '/storage/emulated/0/Download/$modelFileName';
-    final file = File(path);
-
-    if (!await file.exists()) {
-      throw Exception(
-        'Model file not found at $path.\n\nPlease ensure you have manually uploaded the model to the emulator\'s Download folder.'
-      );
-    }
-    return file.path;
-  }
-
   Future<void> _generateResponse() async {
-    if (_chat == null || _promptController.text.isEmpty) return;
+    if (_chat == null || _promptController.text.trim().isEmpty) return;
+
+    final promptText = _promptController.text;
+    _promptController.clear();
 
     setState(() {
       _isLoading = true;
-      _responseText = 'Generating response...';
+      _responseText = 'Generating response for: "$promptText"';
     });
 
     try {
-      await _chat!.addQueryChunk(Message.text(text: _promptController.text, isUser: true));
+      await _chat!.addQuery(Message.text(text: promptText, isUser: true));
       final response = await _chat!.generateChatResponse();
       
       setState(() {
-          if (response is TextResponse) {
-             _responseText = response.token;
-          } else {
-             _responseText = 'Model returned a non-text response.';
-          }
+        if (response is TextResponse) {
+          _responseText = response.token;
+        } else {
+          _responseText = 'Model returned a non-text response.';
+        }
       });
+
     } catch (e) {
       setState(() {
         _responseText = 'Error during generation: $e';
@@ -159,10 +156,8 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  // --- UI WIDGETS ---
   @override
   Widget build(BuildContext context) {
-    // ... [The UI build method remains the same as the last version] ...
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gemma 3n Local Test'),
@@ -174,15 +169,30 @@ class _MyHomePageState extends State<MyHomePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   color: Colors.white10,
                 ),
-                child: Text(
-                  'Testing Model: $_modelFileName',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontStyle: FontStyle.italic),
-                  textAlign: TextAlign.center,
+                child: DropdownButton<String>(
+                  value: _selectedModelName,
+                  isExpanded: true,
+                  underline: const SizedBox.shrink(),
+                  onChanged: _isLoading ? null : (String? newValue) {
+                    if (newValue != null && _selectedModelName != newValue) {
+                      setState(() {
+                        _selectedModelName = newValue;
+                        _selectedModelFileName = _models[newValue]!;
+                        _initializeModel();
+                      });
+                    }
+                  },
+                  items: _models.keys.map<DropdownMenuItem<String>>((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value, overflow: TextOverflow.ellipsis),
+                    );
+                  }).toList(),
                 ),
               ),
               const SizedBox(height: 20),
@@ -194,6 +204,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   border: OutlineInputBorder(),
                 ),
                 enabled: !_isLoading && _chat != null,
+                maxLines: 3,
+                onSubmitted: (_) => _generateResponse(),
               ),
               const SizedBox(height: 20),
               
@@ -202,9 +214,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   padding: const EdgeInsets.symmetric(vertical: 15),
                 ),
                 onPressed: (_isLoading || _chat == null) ? null : _generateResponse,
-                child: _isLoading 
-                  ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3)) 
-                  : const Text('Generate Response'),
+                child: const Text('Generate Response'),
               ),
               const SizedBox(height: 20),
               
@@ -217,14 +227,24 @@ class _MyHomePageState extends State<MyHomePage> {
               Expanded(
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(12.0),
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey),
-                    borderRadius: BorderRadius.circular(4.0),
+                    borderRadius: BorderRadius.circular(8.0),
+                    color: Colors.black26,
                   ),
-                  child: SingleChildScrollView(
-                    child: SelectableText(_responseText),
-                  ),
+                  child: _isLoading 
+                    ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const CircularProgressIndicator(),
+                          const SizedBox(height: 15),
+                          SelectableText(_responseText, textAlign: TextAlign.center),
+                        ],
+                      )
+                    : SingleChildScrollView(
+                        child: SelectableText(_responseText),
+                      ),
                 ),
               ),
             ],

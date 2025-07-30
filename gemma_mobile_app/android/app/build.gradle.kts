@@ -10,8 +10,8 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 
-    androidResources {
-        noCompress.add(".task")
+    aaptOptions {
+        noCompress(".task")
     }
 
     compileOptions {
