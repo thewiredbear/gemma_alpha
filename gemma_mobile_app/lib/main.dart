@@ -87,6 +87,7 @@ class _MyHomePageState extends State<MyHomePage> {
       });
 
       final modelPath = '/storage/emulated/0/Download/$_selectedModelFileName';
+      //final modelPath = '/storage/Download/$_selectedModelFileName';
       final file = File(modelPath);
 
       if (!await file.exists()) {

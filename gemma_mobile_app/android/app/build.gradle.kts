@@ -10,9 +10,6 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
 
-    aaptOptions {
-        noCompress(".task")
-    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -36,9 +33,16 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+        // TODO: Add your own signing config for the release build.
+        // Signing with the debug keys for now, so `flutter run --release` works.
+        signingConfig = signingConfigs.getByName("debug")
+        
+        // --- ADD THESE LINES ---
+        //isMinifyEnabled = true // Enables R8 code shrinking and obfuscation
+        //proguardFiles(
+        //    getDefaultProguardFile("proguard-android-optimize.txt"),
+        //    "proguard-rules.pro"
+        //)
         }
     }
 }
