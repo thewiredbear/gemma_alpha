@@ -44,6 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isLoading = false;
   
   final Map<String, String> _models = {
+    // Start with the 2B model for better performance on mobile devices
     'Gemma 3n 2B (from Download folder)': 'gemma-3n-E2B-it-int4.task',
     'Gemma 3n 4B (from Download folder)': 'gemma-3n-E4B-it-int4.task',
   };
@@ -59,6 +60,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<bool> _requestStoragePermission() async {
+    // For modern Android, MANAGE_EXTERNAL_STORAGE is required for broad file access.
     if (await Permission.manageExternalStorage.isGranted) {
       return true;
     } else {
@@ -83,28 +85,24 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       }
       setState(() {
-        _responseText = 'Permission granted. Looking for $_selectedModelFileName in Download folder...';
+        _responseText = 'Permission granted. Looking for $_selectedModelFileName...';
       });
 
       final modelPath = '/storage/emulated/0/Download/$_selectedModelFileName';
-      //final modelPath = '/storage/Download/$_selectedModelFileName';
       final file = File(modelPath);
 
       if (!await file.exists()) {
         throw Exception(
-          'Model file not found at "$modelPath".\n\nPlease ensure the file is in your emulator\'s Download folder. You can drag and drop the file onto the emulator screen to transfer it.'
+          'Model file not found at "$modelPath".\n\nPlease ensure the model file is in your device\'s Download folder.'
         );
       }
       
       await _gemma.modelManager.setModelPath(file.path);
 
-      // --- THE CRITICAL CHANGE IS HERE ---
-      // Use the CPU backend for the emulator to avoid OpenCL errors.
       _inferenceModel = await _gemma.createModel(
         modelType: ModelType.gemmaIt,
-        preferredBackend: PreferredBackend.cpu, // CHANGED FROM .gpu to .cpu
-        supportImage: true, 
-        maxNumImages: 1,
+        preferredBackend: PreferredBackend.cpu, // Use CPU for broad compatibility
+        supportImage: false, 
       );
       
       _chat = await _inferenceModel?.createChat();
@@ -123,6 +121,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  /// Generates a response from the model using a streaming method.
   Future<void> _generateResponse() async {
     if (_chat == null || _promptController.text.trim().isEmpty) return;
 
@@ -131,26 +130,32 @@ class _MyHomePageState extends State<MyHomePage> {
 
     setState(() {
       _isLoading = true;
-      _responseText = 'Generating response for: "$promptText"';
+      _responseText = ''; // Start with an empty string for the streaming text
     });
 
     try {
+      // Step 1: Add the user's message to the chat history.
+      // The model will use this history to generate its response.
       await _chat!.addQuery(Message.text(text: promptText, isUser: true));
-      final response = await _chat!.generateChatResponse();
-      
-      setState(() {
-        if (response is TextResponse) {
-          _responseText = response.token;
-        } else {
-          _responseText = 'Model returned a non-text response.';
-        }
-      });
 
+      // Step 2: Call the streaming method. Based on the library source,
+      // the correct method is `generateChatResponseAsync`.
+      final stream = _chat!.generateChatResponseAsync();
+
+      // Step 3: Listen to the stream and update the UI with each new token.
+      await for (final response in stream) {
+        if (response is TextResponse) {
+          setState(() {
+            _responseText += response.token;
+          });
+        }
+      }
     } catch (e) {
       setState(() {
         _responseText = 'Error during generation: $e';
       });
     } finally {
+      // This runs after the stream is closed (successfully or with an error).
       setState(() {
         _isLoading = false;
       });
@@ -225,6 +230,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               const SizedBox(height: 10),
               
+              // This UI block is designed for a good streaming experience.
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -234,18 +240,18 @@ class _MyHomePageState extends State<MyHomePage> {
                     borderRadius: BorderRadius.circular(8.0),
                     color: Colors.black26,
                   ),
-                  child: _isLoading 
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const CircularProgressIndicator(),
-                          const SizedBox(height: 15),
-                          SelectableText(_responseText, textAlign: TextAlign.center),
-                        ],
-                      )
-                    : SingleChildScrollView(
-                        child: SelectableText(_responseText),
-                      ),
+                  child: SingleChildScrollView(
+                    reverse: true, // Keeps the view scrolled to the bottom
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SelectableText(_responseText),
+                        // Show a blinking cursor while the model is generating
+                        if (_isLoading)
+                          BlinkingCursor(),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -253,5 +259,48 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
     );
+  }
+}
+
+/// A simple widget that simulates a blinking cursor.
+class BlinkingCursor extends StatefulWidget {
+  const BlinkingCursor({super.key});
+
+  @override
+  State<BlinkingCursor> createState() => _BlinkingCursorState();
+}
+
+class _BlinkingCursorState extends State<BlinkingCursor> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _controller,
+      child: Container(
+        width: 10,
+        height: 20,
+        margin: const EdgeInsets.only(top: 5),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(2),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 }
