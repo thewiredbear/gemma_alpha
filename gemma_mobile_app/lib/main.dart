@@ -3,6 +3,7 @@ import 'package:flutter_gemma/flutter_gemma.dart';
 import 'package:flutter_gemma/pigeon.g.dart';
 import 'package:flutter_gemma/core/model.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
 void main() {
@@ -45,8 +46,8 @@ class _MyHomePageState extends State<MyHomePage> {
   
   final Map<String, String> _models = {
     // Start with the 2B model for better performance on mobile devices
-    'Gemma 3n 2B (from Download folder)': 'gemma-3n-E2B-it-int4.task',
-    'Gemma 3n 4B (from Download folder)': 'gemma-3n-E4B-it-int4.task',
+    'Gemma 3n 2B': 'gemma-3n-E2B-it-int4.task',
+    'Gemma 3n 4B': 'gemma-3n-E4B-it-int4.task',
   };
   late String _selectedModelName;
   late String _selectedModelFileName;
@@ -60,19 +61,59 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<bool> _requestStoragePermission() async {
-    // For modern Android, MANAGE_EXTERNAL_STORAGE is required for broad file access.
-    if (await Permission.manageExternalStorage.isGranted) {
-      return true;
+    // Only request permissions on Android
+    if (Platform.isAndroid) {
+      if (await Permission.manageExternalStorage.isGranted) {
+        return true;
+      } else {
+        final status = await Permission.manageExternalStorage.request();
+        return status.isGranted;
+      }
+    }
+    // iOS doesn't need these permissions for app documents directory
+    return true;
+  }
+
+  Future<String> _getModelPath() async {
+    if (Platform.isIOS) {
+      // On iOS, check multiple possible locations
+      final documentsDir = await getApplicationDocumentsDirectory();
+      final possiblePaths = [
+        '${documentsDir.path}/$_selectedModelFileName',
+        '${documentsDir.path}/Downloads/$_selectedModelFileName',
+      ];
+      
+      // Return the first path where the file exists
+      for (String path in possiblePaths) {
+        if (await File(path).exists()) {
+          return path;
+        }
+      }
+      
+      // If file doesn't exist, return the documents directory path
+      return '${documentsDir.path}/$_selectedModelFileName';
     } else {
-      final status = await Permission.manageExternalStorage.request();
-      return status.isGranted;
+      // Android path
+      return '/storage/emulated/0/Download/$_selectedModelFileName';
+    }
+  }
+
+  String _getInstructions() {
+    if (Platform.isIOS) {
+      return 'Please add the model file to your device using:\n'
+             '1. iTunes File Sharing\n'
+             '2. AirDrop to your device\n'
+             '3. Drag & drop to iOS Simulator\n'
+             '4. Files app (if available)';
+    } else {
+      return 'Please ensure the model file is in your device\'s Download folder.';
     }
   }
 
   Future<void> _initializeModel() async {
     setState(() {
       _isLoading = true;
-      _responseText = 'Checking storage permissions...';
+      _responseText = 'Checking permissions and model file...';
       _chat = null;
       _inferenceModel = null;
     });
@@ -84,18 +125,23 @@ class _MyHomePageState extends State<MyHomePage> {
           "Storage permission denied. Please grant 'All files access' permission for this app in your device settings and restart the app."
         );
       }
+      
       setState(() {
         _responseText = 'Permission granted. Looking for $_selectedModelFileName...';
       });
 
-      final modelPath = '/storage/emulated/0/Download/$_selectedModelFileName';
+      final modelPath = await _getModelPath();
       final file = File(modelPath);
 
       if (!await file.exists()) {
         throw Exception(
-          'Model file not found at "$modelPath".\n\nPlease ensure the model file is in your device\'s Download folder.'
+          'Model file not found at "$modelPath".\n\n${_getInstructions()}'
         );
       }
+      
+      setState(() {
+        _responseText = 'Model file found. Loading model...';
+      });
       
       await _gemma.modelManager.setModelPath(file.path);
 
@@ -108,7 +154,7 @@ class _MyHomePageState extends State<MyHomePage> {
       _chat = await _inferenceModel?.createChat();
 
       setState(() {
-        _responseText = 'Model "$_selectedModelName" loaded successfully! Ready for prompts.';
+        _responseText = 'Model "$_selectedModelName" loaded successfully! Ready for prompts.\n\nModel path: $modelPath';
       });
     } catch (e) {
       setState(() {
@@ -166,7 +212,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gemma 3n Local Test'),
+        title: Text('Gemma 3n Local Test (${Platform.operatingSystem})'),
       ),
       body: SafeArea(
         child: Padding(
@@ -248,7 +294,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         SelectableText(_responseText),
                         // Show a blinking cursor while the model is generating
                         if (_isLoading)
-                          BlinkingCursor(),
+                          const BlinkingCursor(),
                       ],
                     ),
                   ),

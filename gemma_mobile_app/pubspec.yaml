@@ -10,7 +10,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
   flutter_gemma: ^0.10.0
   path_provider: ^2.1.5
   permission_handler: ^11.4.0 # Make sure you have this dependency
