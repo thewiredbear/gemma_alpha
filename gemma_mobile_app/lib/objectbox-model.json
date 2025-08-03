@@ -1,0 +1,105 @@
+{
+  "_note1": "KEEP THIS FILE! Check it into a version control system (VCS) like git.",
+  "_note2": "ObjectBox manages crucial IDs for your object model. See docs for details.",
+  "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
+  "entities": [
+    {
+      "id": "1:2859567751538602466",
+      "lastPropertyId": "5:4340130636034114408",
+      "name": "Conversation",
+      "properties": [
+        {
+          "id": "1:230111692254382996",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:6021239327271678907",
+          "name": "title",
+          "type": 9
+        },
+        {
+          "id": "3:9100938233214325982",
+          "name": "modelName",
+          "type": 9
+        },
+        {
+          "id": "4:481784479049116399",
+          "name": "createdAt",
+          "type": 10
+        },
+        {
+          "id": "5:4340130636034114408",
+          "name": "updatedAt",
+          "type": 10
+        }
+      ],
+      "relations": [
+        {
+          "id": "1:182705571228144616",
+          "name": "messages",
+          "targetId": "2:7811330226467369996"
+        }
+      ]
+    },
+    {
+      "id": "2:7811330226467369996",
+      "lastPropertyId": "7:4162221759496699993",
+      "name": "Message",
+      "properties": [
+        {
+          "id": "1:3998325206162957746",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:5045653068960368309",
+          "name": "content",
+          "type": 9
+        },
+        {
+          "id": "3:6352108399457732754",
+          "name": "isFromUser",
+          "type": 1
+        },
+        {
+          "id": "4:8565086619627863229",
+          "name": "timestamp",
+          "type": 10
+        },
+        {
+          "id": "5:7745671393580022296",
+          "name": "tokenCount",
+          "type": 6
+        },
+        {
+          "id": "6:3269032827426521914",
+          "name": "processingTimeMs",
+          "type": 6
+        },
+        {
+          "id": "7:4162221759496699993",
+          "name": "conversationId",
+          "type": 11,
+          "flags": 520,
+          "indexId": "1:4996681417945844010",
+          "relationTarget": "Conversation"
+        }
+      ],
+      "relations": []
+    }
+  ],
+  "lastEntityId": "2:7811330226467369996",
+  "lastIndexId": "1:4996681417945844010",
+  "lastRelationId": "1:182705571228144616",
+  "lastSequenceId": "0:0",
+  "modelVersion": 5,
+  "modelVersionParserMinimum": 5,
+  "retiredEntityUids": [],
+  "retiredIndexUids": [],
+  "retiredPropertyUids": [],
+  "retiredRelationUids": [],
+  "version": 1
+}
