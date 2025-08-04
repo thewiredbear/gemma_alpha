@@ -89,10 +89,36 @@
         }
       ],
       "relations": []
+    },
+    {
+      "id": "3:7523831524193991030",
+      "lastPropertyId": "3:4085045449275457039",
+      "name": "TextbookChunk",
+      "properties": [
+        {
+          "id": "1:214063676550671391",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:7625807644409208997",
+          "name": "text",
+          "type": 9
+        },
+        {
+          "id": "3:4085045449275457039",
+          "name": "embedding",
+          "type": 28,
+          "flags": 8,
+          "indexId": "2:560090793809498597"
+        }
+      ],
+      "relations": []
     }
   ],
-  "lastEntityId": "2:7811330226467369996",
-  "lastIndexId": "1:4996681417945844010",
+  "lastEntityId": "3:7523831524193991030",
+  "lastIndexId": "2:560090793809498597",
   "lastRelationId": "1:182705571228144616",
   "lastSequenceId": "0:0",
   "modelVersion": 5,

@@ -16,6 +16,7 @@ import 'package:objectbox_flutter_libs/objectbox_flutter_libs.dart';
 
 import 'data/models/conversation.dart';
 import 'data/models/message.dart';
+import 'data/models/textbook_chunk.dart';
 
 export 'package:objectbox/objectbox.dart'; // so that callers only have to import this file
 
@@ -120,6 +121,36 @@ final _entities = <obx_int.ModelEntity>[
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
   ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(3, 7523831524193991030),
+    name: 'TextbookChunk',
+    lastPropertyId: const obx_int.IdUid(3, 4085045449275457039),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 214063676550671391),
+        name: 'id',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 7625807644409208997),
+        name: 'text',
+        type: 9,
+        flags: 0,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 4085045449275457039),
+        name: 'embedding',
+        type: 28,
+        flags: 8,
+        indexId: const obx_int.IdUid(2, 560090793809498597),
+        hnswParams: obx_int.ModelHnswParams(dimensions: 10),
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
 ];
 
 /// Shortcut for [obx.Store.new] that passes [getObjectBoxModel] and for Flutter
@@ -160,8 +191,8 @@ Future<obx.Store> openStore({
 obx_int.ModelDefinition getObjectBoxModel() {
   final model = obx_int.ModelInfo(
     entities: _entities,
-    lastEntityId: const obx_int.IdUid(2, 7811330226467369996),
-    lastIndexId: const obx_int.IdUid(1, 4996681417945844010),
+    lastEntityId: const obx_int.IdUid(3, 7523831524193991030),
+    lastIndexId: const obx_int.IdUid(2, 560090793809498597),
     lastRelationId: const obx_int.IdUid(1, 182705571228144616),
     lastSequenceId: const obx_int.IdUid(0, 0),
     retiredEntityUids: const [],
@@ -288,6 +319,40 @@ obx_int.ModelDefinition getObjectBoxModel() {
         return object;
       },
     ),
+    TextbookChunk: obx_int.EntityDefinition<TextbookChunk>(
+      model: _entities[2],
+      toOneRelations: (TextbookChunk object) => [],
+      toManyRelations: (TextbookChunk object) => {},
+      getId: (TextbookChunk object) => object.id,
+      setId: (TextbookChunk object, int id) {
+        object.id = id;
+      },
+      objectToFB: (TextbookChunk object, fb.Builder fbb) {
+        final textOffset = fbb.writeString(object.text);
+        final embeddingOffset = fbb.writeListFloat32(object.embedding);
+        fbb.startTable(4);
+        fbb.addInt64(0, object.id);
+        fbb.addOffset(1, textOffset);
+        fbb.addOffset(2, embeddingOffset);
+        fbb.finish(fbb.endTable());
+        return object.id;
+      },
+      objectFromFB: (obx.Store store, ByteData fbData) {
+        final buffer = fb.BufferContext(fbData);
+        final rootOffset = buffer.derefObject(0);
+        final textParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 6, '');
+        final embeddingParam = const fb.ListReader<double>(
+          fb.Float32Reader(),
+          lazy: false,
+        ).vTableGet(buffer, rootOffset, 8, []);
+        final object = TextbookChunk(text: textParam, embedding: embeddingParam)
+          ..id = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
+
+        return object;
+      },
+    ),
   };
 
   return obx_int.ModelDefinition(model, bindings);
@@ -361,5 +426,23 @@ class Message_ {
   /// See [Message.conversation].
   static final conversation = obx.QueryRelationToOne<Message, Conversation>(
     _entities[1].properties[6],
+  );
+}
+
+/// [TextbookChunk] entity fields to define ObjectBox queries.
+class TextbookChunk_ {
+  /// See [TextbookChunk.id].
+  static final id = obx.QueryIntegerProperty<TextbookChunk>(
+    _entities[2].properties[0],
+  );
+
+  /// See [TextbookChunk.text].
+  static final text = obx.QueryStringProperty<TextbookChunk>(
+    _entities[2].properties[1],
+  );
+
+  /// See [TextbookChunk.embedding].
+  static final embedding = obx.QueryHnswProperty<TextbookChunk>(
+    _entities[2].properties[2],
   );
 }

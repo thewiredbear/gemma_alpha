@@ -1,0 +1,22 @@
+[
+  {
+    "text": "Photosynthesis is the process by which plants convert light energy, usually from the sun, into chemical energy stored in glucose. This process occurs in the chloroplasts of plant cells and involves two main stages: the light-dependent reactions and the Calvin cycle.",
+    "embedding": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+  },
+  {
+    "text": "Cellular respiration is the process by which cells break down glucose and other organic molecules to release energy in the form of ATP. This process occurs in the mitochondria and involves three main stages: glycolysis, the citric acid cycle, and the electron transport chain.",
+    "embedding": [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 0.1]
+  },
+  {
+    "text": "DNA replication is the process by which a cell makes an exact copy of its DNA before cell division. This process involves unwinding the double helix, synthesizing new complementary strands, and proofreading for errors.",
+    "embedding": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 0.1, 0.2]
+  },
+  {
+    "text": "Protein synthesis is the process by which cells create proteins based on the genetic information stored in DNA. This process involves transcription of DNA to mRNA and translation of mRNA to proteins at the ribosomes.",
+    "embedding": [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 0.1, 0.2, 0.3]
+  },
+  {
+    "text": "Mitosis is the process of cell division that results in two genetically identical daughter cells. This process involves prophase, metaphase, anaphase, and telophase, followed by cytokinesis.",
+    "embedding": [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 0.1, 0.2, 0.3, 0.4]
+  }
+]

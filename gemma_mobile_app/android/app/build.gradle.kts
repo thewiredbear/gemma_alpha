@@ -11,7 +11,7 @@ android {
     ndkVersion = "27.0.12077973"
 
     aaptOptions {
-        noCompress(".task")
+        noCompress(".task", ".tflite")
     }
 
     compileOptions {
@@ -32,6 +32,17 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // MediaPipe native library configuration
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+        
+        // MediaPipe specific configurations
+        packagingOptions {
+            pickFirst("**/libc++_shared.so")
+            pickFirst("**/libjsc.so")
+        }
     }
 
     buildTypes {
@@ -41,6 +52,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
+
+dependencies {
+    // MediaPipe dependencies
+    implementation("com.google.mediapipe:tasks-text:0.10.0")
+    implementation("com.google.mediapipe:tasks-core:0.10.0")
 }
 
 flutter {

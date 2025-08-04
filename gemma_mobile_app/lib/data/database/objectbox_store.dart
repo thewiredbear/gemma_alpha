@@ -16,6 +16,9 @@ class ObjectBoxStore {
     _messageBox = _store.box<Message>();
   }
 
+  // Getter to expose the store for RagService
+  Store get store => _store;
+
   static Future<ObjectBoxStore> getInstance() async {
     if (_instance == null) {
       // Get the application documents directory

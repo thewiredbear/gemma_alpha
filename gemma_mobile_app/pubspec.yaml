@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.0.0 <4.0.0' # Adjust to your SDK constraints
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -23,6 +23,9 @@ dependencies:
   
   # Optional: For path manipulation when setting up ObjectBox store
   path: ^1.8.3
+  
+  # Note: Removed MediaPipe and TensorFlow Lite dependencies due to native binding issues
+  # Using pure Dart fallback implementation for text embeddings
 
 dev_dependencies:
   flutter_test:
@@ -35,3 +38,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  
+  # Assets for RAG system
+  assets:
+    - assets/textbook_vectors.json
+    - assets/models/
+    - assets/universal_sentence_encoder.tflite

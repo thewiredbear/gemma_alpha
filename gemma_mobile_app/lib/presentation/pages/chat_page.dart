@@ -6,6 +6,7 @@ import '../widgets/chat_input.dart';
 import '../widgets/chat_message.dart';
 import '../widgets/blinking_cursor.dart';
 import '../../core/utils/platform_helper.dart';
+import 'mediapipe_test_page.dart'; // Keep this import since you kept the filename
 
 class ChatPage extends StatelessWidget {
   const ChatPage({super.key});
@@ -16,9 +17,30 @@ class ChatPage extends StatelessWidget {
       appBar: AppBar(
         title: Text('Gemma AI Chat (${PlatformHelper.platformName})'),
         actions: [
+          // RAG Toggle Button
+          Consumer<ChatProvider>(
+            builder: (context, provider, child) {
+              return IconButton(
+                icon: Icon(
+                  provider.ragEnabled ? Icons.auto_awesome : Icons.auto_awesome_outlined,
+                  color: provider.ragEnabled ? Colors.green : null,
+                ),
+                onPressed: () => provider.toggleRag(),
+                tooltip: provider.ragEnabled ? 'RAG Enabled' : 'RAG Disabled',
+              );
+            },
+          ),
+          // Text Embedder Button (now points to MediaPipeTestPage)
+          IconButton(
+            icon: const Icon(Icons.psychology),
+            onPressed: () => _navigateToEmbedder(context),
+            tooltip: 'Text Embedder',
+          ),
+          // Existing History Button
           IconButton(
             icon: const Icon(Icons.history),
             onPressed: () => _showConversationHistory(context),
+            tooltip: 'Conversation History',
           ),
         ],
       ),
@@ -116,6 +138,15 @@ class ChatPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+  
+  void _navigateToEmbedder(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MediaPipeTestPage(), // Navigate to MediaPipeTestPage (which now contains the embedder)
       ),
     );
   }
